@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Concierge Support Portal</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      height: 100vh;
+      background: #0f172a;
+      color: white;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 300px;
+      background: #020617;
+      padding: 15px;
+      border-right: 1px solid #1e293b;
+    }
+
+    .sidebar h2 {
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .chat-item {
+      padding: 12px;
+      background: #1e293b;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .chat-item:hover {
+      background: #334155;
+    }
+
+    .chat-item.active {
+      border-left: 4px solid #2563eb;
+      background: #1e40af;
+    }
+
+    .chat-item small {
+      display: block;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    /* CHAT AREA */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-header {
+      padding: 15px;
+      background: linear-gradient(135deg,#1e3a8a,#2563eb);
+      font-size: 14px;
+    }
+
+    .chat-header span {
+      display: block;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .chat-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: #020617;
+    }
+
+    .msg {
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 10px;
+      max-width: 60%;
+      font-size: 14px;
+    }
+
+    .user {
+      background: #334155;
+    }
+
+    .agent {
+      background: #2563eb;
+      margin-left: auto;
+    }
+
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #1e293b;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      outline: none;
+      background: #020617;
+      color: white;
+    }
+
+    .chat-input button {
+      width: 120px;
+      background: #2563eb;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>Support Queue</h2>
+  <div id="chatList"></div>
+</div>
+
+<div class="chat-area">
+
+  <div class="chat-header" id="chatHeader">
+    Select a ticket
+    <span>Waiting for selection</span>
+  </div>
+
+  <div class="chat-body" id="chatBody"></div>
+
+  <div class="chat-input">
+    <input id="msgInput" placeholder="Type your reply..." />
+    <button onclick="sendReply()">Send</button>
+  </div>
+
+</div>
+
+<script>
+
+let chats = JSON.parse(localStorage.getItem("supportChats") || "[]");
+let currentChat = null;
+let lastCount = chats.length;
+
+function loadChats() {
+  const list = document.getElementById("chatList");
+  list.innerHTML = "";
+
+  chats.forEach(chat => {
+    list.innerHTML += `
+      <div class="chat-item ${currentChat && currentChat.id === chat.id ? 'active' : ''}"
+        onclick="openChat('${chat.id}')">
+        ${chat.id}
+        <small>${chat.name || "Unknown User"}</small>
+      </div>
+    `;
+  });
+}
+
+function openChat(id) {
+  currentChat = chats.find(c => c.id === id);
+
+  document.getElementById("chatHeader").innerHTML =
+    `Ticket: ${currentChat.id}
+     <span>${currentChat.name || "User"} • Active Chat</span>`;
+
+  renderMessages();
+}
+
+function renderMessages() {
+  const body = document.getElementById("chatBody");
+  body.innerHTML = "";
+
+  currentChat.messages.forEach(m => {
+    body.innerHTML += `
+      <div class="msg ${m.sender === 'agent' ? 'agent' : 'user'}">
+        ${m.text}
+      </div>
+    `;
+  });
+
+  body.scrollTop = body.scrollHeight;
+}
+
+function sendReply() {
+  const input = document.getElementById("msgInput");
+  if (!input.value || !currentChat) return;
+
+  currentChat.messages.push({
+    sender: "agent",
+    text: input.value
+  });
+
+  localStorage.setItem("supportChats", JSON.stringify(chats));
+
+  input.value = "";
+  renderMessages();
+}
+
+setInterval(() => {
+  chats = JSON.parse(localStorage.getItem("supportChats") || "[]");
+
+  if (chats.length > lastCount) {
+    alert("🔔 New Ticket Received!");
+    lastCount = chats.length;
+  }
+
+  loadChats();
+
+  if (currentChat) {
+    currentChat = chats.find(c => c.id === currentChat.id);
+    renderMessages();
+  }
+
+}, 1000);
+
+loadChats();
+
+</script>
+
+</body>
+</html>
